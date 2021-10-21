@@ -150,6 +150,7 @@ module RSpec
 
             try_message = "\n#{ordinalize(attempts)} Try error in #{example.location}:\n#{exception_strings.join "\n"}\n"
             RSpec.configuration.reporter.message(try_message)
+            File.open('tmp/flaky-tests.log', 'wb') { |f| f.write(try_message) }
           end
         end
 
