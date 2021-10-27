@@ -414,5 +414,17 @@ describe RSpec::Retry do
         | RSpec::Retry: 2nd try ./spec/lib/rspec/retry_spec.rb:#{line_2}
       STRING
     end
+
+    it 'outputs failures correctly' do
+      RSpec.configuration.output_stream = retry_output = StringIO.new
+      RSpec.configuration.verbose_retry = true
+      RSpec.configuration.display_try_failure_messages = true
+      reporter = RSpec::Core::Reporter.new(RSpec.configuration)
+      reporter.register_listener(RSpec::Core::Formatters::BaseTextFormatter.new(retry_output), 'message')
+      RSpec.configuration.retry_reporter = reporter
+      expect do
+        group.run RSpec.configuration.retry_reporter
+      end.to change { retry_output.string }.to a_string_including "1st Try error in ./spec/lib/rspec/retry_spec.rb:#{line_2}:\nbroken spec\nbroken after hook\n\nRSpec::Retry: 2nd try ./spec/lib/rspec/retry_spec.rb:#{line_2}"
+    end
   end
 end
