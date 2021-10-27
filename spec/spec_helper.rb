@@ -1,11 +1,13 @@
+# frozen_string_literal: true
+
 require 'rspec'
 require 'rspec/core/sandbox'
 
 require 'rspec/retry'
 if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2')
-  require "pry-debugger"
+  require 'pry-debugger'
 else
-  require "pry-byebug"
+  require 'pry-byebug'
 end
 
 RSpec.configure do |config|
@@ -13,7 +15,7 @@ RSpec.configure do |config|
   config.display_try_failure_messages = true
 
   config.around :example do |ex|
-    RSpec::Core::Sandbox.sandboxed do |config|
+    RSpec::Core::Sandbox.sandboxed do |_config|
       RSpec::Retry.setup
       ex.run
     end
