@@ -34,23 +34,27 @@ require in ``spec_helper.rb``
 ```ruby
 # spec/spec_helper.rb
 require 'rspec/retry'
+require 'rspec/core/formatters/base_text_formatter'
 
 RSpec.configure do |config|
   # show retry status in spec process
   config.verbose_retry = true
   # show exception that triggers a retry if verbose_retry is set to true
   config.display_try_failure_messages = true
+  reporter = RSpec::Core::Reporter.new(config)
+  reporter.register_listener(RSpec::Core::Formatters::BaseTextFormatter.new(File.open('tmp/rspec-retry-flakey-tests.txt', 'wb')), 'message')
+  config.retry_reporter = reporter
 
   # run retry only on features
   config.around :each, :js do |ex|
     ex.run_with_retry retry: 3
   end
 
-  # callback to be run between retries  
+  # callback to be run between retries
   config.retry_callback = proc do |ex|
     # run some additional clean up task - can be filtered by example metadata
     if ex.metadata[:js]
-      Capybara.reset!     
+      Capybara.reset!
     end
   end
 end

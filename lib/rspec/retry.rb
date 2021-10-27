@@ -14,6 +14,7 @@ module RSpec
         config.add_setting :exponential_backoff, default: false
         config.add_setting :clear_lets_on_failure, default: true
         config.add_setting :display_try_failure_messages, default: false
+        config.add_setting :retry_reporter
 
         # retry based on example metadata
         config.add_setting :retry_count_condition, default: ->(_) { nil }
@@ -147,7 +148,7 @@ module RSpec
 
           try_message = "\n#{ordinalize(attempts)} Try error in #{example.location}:\n#{exception_strings.join "\n"}\n"
           RSpec.configuration.reporter.message(try_message)
-          File.open('tmp/flaky-tests.log', 'wb') { |f| f.write(try_message) }
+          RSpec.configuration.retry_reporter&.message(try_message)
         end
 
         example.example_group_instance.clear_lets if clear_lets
