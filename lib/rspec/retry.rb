@@ -15,6 +15,7 @@ module RSpec
         config.add_setting :clear_lets_on_failure, default: true
         config.add_setting :display_try_failure_messages, default: false
         config.add_setting :retry_reporter
+        config.add_setting :source_code_repo_url
 
         # retry based on example metadata
         config.add_setting :retry_count_condition, default: ->(_) { nil }
@@ -109,6 +110,7 @@ module RSpec
 
     def run
       example = current_example
+      retry_reporter_data = {}
 
       loop do
         if attempts.positive?
@@ -148,7 +150,7 @@ module RSpec
 
           try_message = "\n#{ordinalize(attempts)} Try error in #{example.location}:\n#{exception_strings.join "\n"}\n"
           RSpec.configuration.reporter.message(try_message)
-          RSpec.configuration.retry_reporter&.message(try_message)
+          retry_reporter_data[example.location] = [attempts, retry_count, example.location, exception_strings.join(',')]
         end
 
         example.example_group_instance.clear_lets if clear_lets
@@ -159,6 +161,12 @@ module RSpec
         end
 
         sleep sleep_interval if sleep_interval.to_f.positive?
+      end
+
+      if RSpec.configuration.retry_reporter && attempts < retry_count
+        retry_reporter_data.each_value do |ary|
+          RSpec.configuration.retry_reporter&.message(ary.join(','))
+        end
       end
     end
 

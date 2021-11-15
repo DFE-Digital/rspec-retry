@@ -415,16 +415,34 @@ describe RSpec::Retry do
       STRING
     end
 
-    it 'outputs failures correctly' do
-      RSpec.configuration.output_stream = retry_output = StringIO.new
-      RSpec.configuration.verbose_retry = true
-      RSpec.configuration.display_try_failure_messages = true
-      reporter = RSpec::Core::Reporter.new(RSpec.configuration)
-      reporter.register_listener(RSpec::Core::Formatters::BaseTextFormatter.new(retry_output), 'message')
-      RSpec.configuration.retry_reporter = reporter
-      expect do
-        group.run RSpec.configuration.retry_reporter
-      end.to change { retry_output.string }.to a_string_including "1st Try error in ./spec/lib/rspec/retry_spec.rb:#{line_2}:\nbroken spec\nbroken after hook\n\nRSpec::Retry: 2nd try ./spec/lib/rspec/retry_spec.rb:#{line_2}"
+    describe 'indeterminate tests' do
+      line_number = __LINE__ + 10
+
+      it 'reports indeterminate tests correctly' do
+        group = RSpec.describe 'Indeterminate group', retry: 3 do
+          @@fail = true
+
+          after do
+            @@fail = false
+          end
+
+          it 'fails or passes' do
+            raise 'broken indeterminate spec' if @@fail
+
+            true
+          end
+        end
+
+        retry_output = StringIO.new
+        RSpec.configuration.verbose_retry = true
+        RSpec.configuration.display_try_failure_messages = true
+        reporter = RSpec::Core::Reporter.new(RSpec.configuration)
+        reporter.register_listener(RSpec::Core::Formatters::BaseTextFormatter.new(retry_output), 'message')
+        RSpec.configuration.retry_reporter = reporter
+        expect do
+          group.run RSpec.configuration.retry_reporter
+        end.to change { retry_output.string }.to "1,3,./spec/lib/rspec/retry_spec.rb:#{line_number},broken indeterminate spec\n"
+      end
     end
   end
 end
