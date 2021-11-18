@@ -37,16 +37,18 @@ require 'rspec/retry'
 require 'rspec/core/formatters/base_text_formatter'
 
 RSpec.configure do |config|
-  # show retry status in spec process
+  # (Optional) show retry status in spec process
   config.verbose_retry = true
-  # show exception that triggers a retry if verbose_retry is set to true
+  # (Optional) show exception that triggers a retry if verbose_retry is set to true
   config.display_try_failure_messages = true
+  # (Optional) configure a reporter & formatter for tests which fail then pass in the alloted number of retries (a.k.a. flakey tests).
   reporter = RSpec::Core::Reporter.new(config)
-  reporter.register_listener(RSpec::Core::Formatters::BaseTextFormatter.new(File.open('tmp/rspec-retry-flakey-tests.txt', 'wb')), 'message')
+  formatter = RSpec::Core::Formatters::BaseTextFormatter.new(File.open('tmp/rspec-retry-flakey-specs.log', 'ab')
+  reporter.register_listener(formatter), 'message')
   config.retry_reporter = reporter
 
-  # run retry only on features
-  config.around :each, :js do |ex|
+  # run retry 3 times on all specs
+  config.around do |ex|
     ex.run_with_retry retry: 3
   end
 
@@ -89,6 +91,7 @@ You can call `ex.run_with_retry(opts)` on an individual example.
 - __:exceptions_to_hard_fail__(default: *[]*) List of exceptions that will trigger an immediate test failure without retry. Takes precedence over __:exceptions_to_retry__
 - __:exceptions_to_retry__(default: *[]*) List of exceptions that will trigger a retry (when empty, all exceptions will)
 - __:retry_callback__(default: *nil*) Callback function to be called between retries
+- __:retry_reporter__(default: *nil*) Reporter which logs comma delimited data for indeterminate specs in the format: `[attempts, max_retries, path_and_line_number_of_failed_spec, error_messages]`
 
 
 ## Environment Variables
