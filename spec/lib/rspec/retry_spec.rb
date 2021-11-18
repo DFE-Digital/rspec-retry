@@ -434,8 +434,6 @@ describe RSpec::Retry do
         end
 
         retry_output = StringIO.new
-        RSpec.configuration.verbose_retry = true
-        RSpec.configuration.display_try_failure_messages = true
         reporter = RSpec::Core::Reporter.new(RSpec.configuration)
         reporter.register_listener(RSpec::Core::Formatters::BaseTextFormatter.new(retry_output), 'message')
         RSpec.configuration.retry_reporter = reporter
