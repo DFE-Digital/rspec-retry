@@ -92,6 +92,7 @@ You can call `ex.run_with_retry(opts)` on an individual example.
 - __:exceptions_to_retry__(default: *[]*) List of exceptions that will trigger a retry (when empty, all exceptions will)
 - __:retry_callback__(default: *nil*) Callback function to be called between retries
 - __:retry_reporter__(default: *nil*) Reporter which logs comma delimited data for indeterminate specs in the format: `[attempts, max_retries, path_and_line_number_of_failed_spec, error_messages]`
+- __:fail_on_flakey_specs__(default: *false*) Fails an example if it has been detected as having an indeterminate result.
 
 
 ## Environment Variables
