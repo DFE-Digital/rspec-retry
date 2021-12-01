@@ -15,7 +15,7 @@ module RSpec
         config.add_setting :clear_lets_on_failure, default: true
         config.add_setting :display_try_failure_messages, default: false
         config.add_setting :retry_reporter
-        config.add_setting :source_code_repo_url
+        config.add_setting :fail_on_flakey_specs, default: false
 
         # retry based on example metadata
         config.add_setting :retry_count_condition, default: ->(_) { nil }
@@ -140,8 +140,8 @@ module RSpec
 
         break if exceptions_to_retry.any? && !exception_exists_in?(exceptions_to_retry, example.exception)
 
-        if (attempts != retry_count)
-          retry_reporter_data[example.location] = [attempts, retry_count, example.location, exception_strings(example.exception).join(',')]
+        if attempts != retry_count
+          retry_reporter_data[example.location] = [attempts, example.location, example.exception]
 
           if verbose_retry? && display_try_failure_messages?
             try_message = "\n#{ordinalize(attempts)} Try error in #{example.location}:\n#{exception_strings(example.exception).join "\n"}\n"
@@ -159,11 +159,19 @@ module RSpec
         sleep sleep_interval if sleep_interval.to_f.positive?
       end
 
-      if RSpec.configuration.retry_reporter && attempts < retry_count
-        retry_reporter_data.each_value do |ary|
-          RSpec.configuration.retry_reporter&.message(ary.join(','))
+      return unless attempts < retry_count
+
+      if RSpec.configuration.retry_reporter
+        retry_reporter_data.each_value do |attempts, location, retry_exception|
+          messages = exception_strings(retry_exception).join(',')
+          RSpec.configuration.retry_reporter&.message([attempts, retry_count, location, messages].join(','))
         end
       end
+
+      return unless RSpec.configuration.fail_on_flakey_specs && retry_reporter_data.any?
+
+      _, _, flakey_exception = retry_reporter_data.values.first
+      example.exception = flakey_exception
     end
 
     private

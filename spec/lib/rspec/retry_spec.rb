@@ -416,10 +416,11 @@ describe RSpec::Retry do
     end
 
     describe 'indeterminate tests' do
-      line_number = __LINE__ + 10
-
-      it 'reports indeterminate tests correctly' do
-        group = RSpec.describe 'Indeterminate group', retry: 3 do
+      let(:retry_output) { StringIO.new }
+      let(:reporter) { RSpec::Core::Reporter.new(RSpec.configuration) }
+      let(:line_number) { __LINE__ + 9 }
+      let(:group) do
+        RSpec.describe 'Indeterminate group', retry: 3 do
           @@fail = true
 
           after do
@@ -427,19 +428,30 @@ describe RSpec::Retry do
           end
 
           it 'fails or passes' do
-            raise 'broken indeterminate spec' if @@fail
+            raise StandardError, 'broken indeterminate spec' if @@fail
 
             true
           end
         end
+      end
 
-        retry_output = StringIO.new
-        reporter = RSpec::Core::Reporter.new(RSpec.configuration)
+      before do
         reporter.register_listener(RSpec::Core::Formatters::BaseTextFormatter.new(retry_output), 'message')
         RSpec.configuration.retry_reporter = reporter
+      end
+
+      it 'reports indeterminate tests correctly' do
         expect do
           group.run RSpec.configuration.retry_reporter
         end.to change { retry_output.string }.to "1,3,./spec/lib/rspec/retry_spec.rb:#{line_number},broken indeterminate spec\n"
+      end
+
+      it 'fails if fail_on_flakey_specs is true' do
+        RSpec.configuration.fail_on_flakey_specs = true
+        group.run RSpec.configuration.retry_reporter
+
+        expect(group.examples.first.exception).to be_a(StandardError)
+        expect(group.examples.first.exception.message).to eq('broken indeterminate spec')
       end
     end
   end

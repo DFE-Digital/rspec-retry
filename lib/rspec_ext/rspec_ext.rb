@@ -3,7 +3,7 @@
 module RSpec
   module Core
     class Example
-      attr_accessor :attempts
+      attr_accessor :attempts, :exception
 
       def clear_exception
         @exception = nil
