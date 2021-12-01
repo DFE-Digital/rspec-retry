@@ -140,17 +140,13 @@ module RSpec
 
         break if exceptions_to_retry.any? && !exception_exists_in?(exceptions_to_retry, example.exception)
 
-        if verbose_retry? && display_try_failure_messages? && (attempts != retry_count)
-          exception_strings =
-            if example.exception.is_a?(::RSpec::Core::MultipleExceptionError::InterfaceTag)
-              example.exception.all_exceptions.map(&:to_s)
-            else
-              [example.exception.to_s]
-            end
+        if (attempts != retry_count)
+          retry_reporter_data[example.location] = [attempts, retry_count, example.location, exception_strings(example.exception).join(',')]
 
-          try_message = "\n#{ordinalize(attempts)} Try error in #{example.location}:\n#{exception_strings.join "\n"}\n"
-          RSpec.configuration.reporter.message(try_message)
-          retry_reporter_data[example.location] = [attempts, retry_count, example.location, exception_strings.join(',')]
+          if verbose_retry? && display_try_failure_messages?
+            try_message = "\n#{ordinalize(attempts)} Try error in #{example.location}:\n#{exception_strings(example.exception).join "\n"}\n"
+            RSpec.configuration.reporter.message(try_message)
+          end
         end
 
         example.example_group_instance.clear_lets if clear_lets
@@ -189,6 +185,14 @@ module RSpec
     def exception_exists_in?(list, exception)
       list.any? do |exception_klass|
         exception.is_a?(exception_klass) || exception_klass === exception
+      end
+    end
+
+    def exception_strings(exception)
+      if exception.is_a?(::RSpec::Core::MultipleExceptionError::InterfaceTag)
+        exception.all_exceptions.map(&:to_s)
+      else
+        [exception.to_s]
       end
     end
   end
