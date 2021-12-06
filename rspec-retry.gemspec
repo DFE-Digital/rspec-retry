@@ -4,11 +4,11 @@ require 'English'
 require File.expand_path('lib/rspec/retry/version', __dir__)
 
 Gem::Specification.new do |gem|
-  gem.authors       = ['Yusuke Mito', 'Michael Glass']
-  gem.email         = ['mike@noredink.com']
-  gem.description   = 'retry intermittently failing rspec examples'
-  gem.summary       = 'retry intermittently failing rspec examples'
-  gem.homepage      = 'http://github.com/NoRedInk/rspec-retry'
+  gem.authors       = ['Yusuke Mito', 'Michael Glass', 'James Glenn', 'Steve Laing']
+  gem.email         = ['james.glenn@digital.education.gov.uk']
+  gem.description   = 'Retry intermittently failing rspec examples – This is an extension to the original gem and will log the flakey tests'
+  gem.summary       = 'Retry intermittently failing rspec examples – This is an extension to the original gem and will log the flakey tests'
+  gem.homepage      = 'https://github.com/DFE-Digital/rspec-retry'
   gem.license       = 'MIT'
 
   gem.files         = `git ls-files`.split($OUTPUT_RECORD_SEPARATOR)
