@@ -416,7 +416,7 @@ describe RSpec::Retry do
     end
 
     describe 'indeterminate tests' do
-      line_number = __LINE__ + 10
+      line_number = __LINE__ + 18
 
       it 'reports indeterminate tests correctly' do
         group = RSpec.describe 'Indeterminate group', retry: 3 do
@@ -426,8 +426,16 @@ describe RSpec::Retry do
             @@fail = false
           end
 
+          let(:error_message) do
+            <<-ERR
+              broken
+              indeterminate
+              spec
+            ERR
+          end
+
           it 'fails or passes' do
-            raise 'broken indeterminate spec' if @@fail
+            raise error_message if @@fail
 
             true
           end
