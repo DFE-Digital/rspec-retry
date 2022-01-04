@@ -140,8 +140,13 @@ module RSpec
 
         break if exceptions_to_retry.any? && !exception_exists_in?(exceptions_to_retry, example.exception)
 
-        if (attempts != retry_count)
-          retry_reporter_data[example.location] = [attempts, retry_count, example.location, exception_strings(example.exception).join(',')]
+        if attempts != retry_count
+          retry_reporter_data[example.location] = [
+            attempts,
+            retry_count,
+            example.location,
+            inline_exception_strings(example.exception).join(',')
+          ]
 
           if verbose_retry? && display_try_failure_messages?
             try_message = "\n#{ordinalize(attempts)} Try error in #{example.location}:\n#{exception_strings(example.exception).join "\n"}\n"
@@ -194,6 +199,10 @@ module RSpec
       else
         [exception.to_s]
       end
+    end
+
+    def inline_exception_strings(exception)
+      exception_strings(exception).map { |s| s.gsub(/[\n\r\s]+/, ' ').strip }
     end
   end
 end
