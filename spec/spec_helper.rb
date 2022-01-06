@@ -16,7 +16,7 @@ RSpec.configure do |config|
 
   config.around :example do |ex|
     RSpec::Core::Sandbox.sandboxed do |_config|
-      RSpec::Retry.setup
+      RSpec::RetryConfiguration.setup
       ex.run
     end
   end
