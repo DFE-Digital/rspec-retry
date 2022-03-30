@@ -43,8 +43,8 @@ RSpec.configure do |config|
   config.display_try_failure_messages = true
   # (Optional) configure a reporter & formatter for tests which fail then pass in the alloted number of retries (a.k.a. flakey tests).
   reporter = RSpec::Core::Reporter.new(config)
-  formatter = RSpec::Core::Formatters::BaseTextFormatter.new(File.open('tmp/rspec-retry-flakey-specs.log', 'ab')
-  reporter.register_listener(formatter), 'message')
+  formatter = RSpec::Core::Formatters::BaseTextFormatter.new(File.open('tmp/rspec-retry-flakey-specs.log', 'ab'))
+  reporter.register_listener(formatter, 'message')
   config.retry_reporter = reporter
 
   # run retry 3 times on all specs
