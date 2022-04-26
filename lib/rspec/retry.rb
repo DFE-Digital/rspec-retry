@@ -1,52 +1,21 @@
 # frozen_string_literal: true
 
 require 'rspec/core'
+require 'rspec/retry_configuration'
+require 'rspec/retry_message'
 require 'rspec/retry/version'
 require 'rspec_ext/rspec_ext'
 
 module RSpec
+  # RSpec::Retry - retry failed examples
   class Retry
-    def self.setup
-      RSpec.configure do |config|
-        config.add_setting :verbose_retry, default: false
-        config.add_setting :default_retry_count, default: 1
-        config.add_setting :default_sleep_interval, default: 0
-        config.add_setting :exponential_backoff, default: false
-        config.add_setting :clear_lets_on_failure, default: true
-        config.add_setting :display_try_failure_messages, default: false
-        config.add_setting :retry_reporter
-        config.add_setting :source_code_repo_url
+    attr_reader :context, :procsy, :retry_reporter_data
 
-        # retry based on example metadata
-        config.add_setting :retry_count_condition, default: ->(_) { nil }
-
-        # If a list of exceptions is provided and 'retry' > 1, we only retry if
-        # the exception that was raised by the example is NOT in that list. Otherwise
-        # we ignore the 'retry' value and fail immediately.
-        #
-        # If no list of exceptions is provided and 'retry' > 1, we always retry.
-        config.add_setting :exceptions_to_hard_fail, default: []
-
-        # If a list of exceptions is provided and 'retry' > 1, we only retry if
-        # the exception that was raised by the example is in that list. Otherwise
-        # we ignore the 'retry' value and fail immediately.
-        #
-        # If no list of exceptions is provided and 'retry' > 1, we always retry.
-        config.add_setting :exceptions_to_retry, default: []
-
-        # Callback between retries
-        config.add_setting :retry_callback, default: nil
-
-        config.around(:each, &:run_with_retry)
-      end
-    end
-
-    attr_reader :context, :ex
-
-    def initialize(ex, opts = {})
-      @ex = ex
-      @ex.metadata.merge!(opts)
+    def initialize(procsy, opts = {})
+      @procsy = procsy
+      @procsy.metadata.merge!(opts)
       current_example.attempts ||= 0
+      @retry_reporter_data = {}
     end
 
     def current_example
@@ -54,15 +23,8 @@ module RSpec
     end
 
     def retry_count
-      [
-        (
-        ENV['RSPEC_RETRY_RETRY_COUNT'] ||
-            ex.metadata[:retry] ||
-            RSpec.configuration.retry_count_condition.call(ex) ||
-            RSpec.configuration.default_retry_count
-      ).to_i,
-        1
-      ].max
+      [(ENV['RSPEC_RETRY_RETRY_COUNT'] || procsy.metadata[:retry] ||
+        config.retry_count_condition.call(procsy) || config.default_retry_count).to_i, 1].max
     end
 
     def attempts
@@ -73,138 +35,123 @@ module RSpec
       current_example.attempts = val
     end
 
-    def clear_lets
-      if !ex.metadata[:clear_lets_on_failure].nil?
-        ex.metadata[:clear_lets_on_failure]
-      else
-        RSpec.configuration.clear_lets_on_failure
-      end
+    def config
+      RSpec.configuration
     end
 
-    def sleep_interval
-      if ex.metadata[:exponential_backoff]
-        2**(current_example.attempts - 1) * ex.metadata[:retry_wait]
-      else
-        ex.metadata[:retry_wait] ||
-          RSpec.configuration.default_sleep_interval
-      end
+    def retry_config
+      RetryConfiguration.new(procsy)
     end
 
-    def exceptions_to_hard_fail
-      ex.metadata[:exceptions_to_hard_fail] ||
-        RSpec.configuration.exceptions_to_hard_fail
-    end
-
-    def exceptions_to_retry
-      ex.metadata[:exceptions_to_retry] ||
-        RSpec.configuration.exceptions_to_retry
-    end
-
-    def verbose_retry?
-      RSpec.configuration.verbose_retry?
-    end
-
-    def display_try_failure_messages?
-      RSpec.configuration.display_try_failure_messages?
-    end
-
+    # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
     def run
       example = current_example
-      retry_reporter_data = {}
 
       loop do
-        if attempts.positive?
-          RSpec.configuration.formatters.each { |f| f.retry(example) if f.respond_to? :retry }
-          if verbose_retry?
-            message = "RSpec::Retry: #{ordinalize(attempts + 1)} try #{example.location}"
-            message = "\n#{message}" if attempts == 1
-            RSpec.configuration.reporter.message(message)
-          end
-        end
+        report_repeat_attempt(example) if attempts.positive?
 
-        example.metadata[:retry_attempts] = attempts
-        example.metadata[:retry_exceptions] ||= []
+        reset_and_run_example(example)
 
-        example.clear_exception
-        ex.run
-
-        self.attempts += 1
-
-        break if example.exception.nil?
+        break if example.exception.nil? || skip_example?(example)
 
         example.metadata[:retry_exceptions] << example.exception
 
-        break if attempts >= retry_count
+        handle_indeterminate_failures(example) if attempts.positive? && attempts < retry_count
 
-        break if exceptions_to_hard_fail.any? && exception_exists_in?(exceptions_to_hard_fail, example.exception)
-
-        break if exceptions_to_retry.any? && !exception_exists_in?(exceptions_to_retry, example.exception)
-
-        if attempts != retry_count
-          retry_reporter_data[example.location] = [
-            attempts,
-            retry_count,
-            example.location,
-            inline_exception_strings(example.exception).join(',')
-          ]
-
-          if verbose_retry? && display_try_failure_messages?
-            try_message = "\n#{ordinalize(attempts)} Try error in #{example.location}:\n#{exception_strings(example.exception).join "\n"}\n"
-            RSpec.configuration.reporter.message(try_message)
-          end
-        end
-
-        example.example_group_instance.clear_lets if clear_lets
-
-        # If the callback is defined, let's call it
-        if RSpec.configuration.retry_callback
-          example.example_group_instance.instance_exec(example, &RSpec.configuration.retry_callback)
-        end
-
-        sleep sleep_interval if sleep_interval.to_f.positive?
+        perform_after_retry_tasks(example)
       end
 
-      if RSpec.configuration.retry_reporter && attempts < retry_count
-        retry_reporter_data.each_value do |ary|
-          RSpec.configuration.retry_reporter&.message(ary.join(','))
-        end
-      end
+      report_on_flakey_examples if config.retry_reporter && attempts < retry_count
     end
+    # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity
 
     private
 
-    # borrowed from ActiveSupport::Inflector
-    def ordinalize(number)
-      if (11..13).include?(number.to_i % 100)
-        "#{number}th"
-      else
-        case number.to_i % 10
-        when 1 then "#{number}st"
-        when 2 then "#{number}nd"
-        when 3 then "#{number}rd"
-        else "#{number}th"
-        end
-      end
+    def reset_and_run_example(example)
+      reset_example_metadata(example)
+
+      procsy.run
+
+      self.attempts += 1
     end
 
+    # rubocop:disable Style/CaseEquality
     def exception_exists_in?(list, exception)
-      list.any? do |exception_klass|
-        exception.is_a?(exception_klass) || exception_klass === exception
-      end
+      list.any? { |exception_klass| exception.is_a?(exception_klass) || exception_klass === exception }
+    end
+    # rubocop:enable Style/CaseEquality
+
+    def retry_reporter_item(example)
+      [
+        attempts,
+        retry_count,
+        example.location,
+        RetryMessage.new(example).inline_exception_strings.join(',')
+      ]
     end
 
-    def exception_strings(exception)
-      if exception.is_a?(::RSpec::Core::MultipleExceptionError::InterfaceTag)
-        exception.all_exceptions.map(&:to_s)
-      else
-        [exception.to_s]
-      end
+    def skip_example?(example)
+      attempts_gte_retry_count? || exception_should_hard_fail?(example.exception) ||
+        exception_should_not_be_retried?(example.exception)
     end
 
-    def inline_exception_strings(exception)
-      exception_strings(exception).map { |s| s.gsub(/[\n\r\s]+/, ' ').strip }
+    def attempts_gte_retry_count?
+      attempts >= retry_count
+    end
+
+    def exception_should_hard_fail?(exception)
+      retry_config.exceptions_to_hard_fail.any? && exception_exists_in?(retry_config.exceptions_to_hard_fail, exception)
+    end
+
+    def exception_should_not_be_retried?(exception)
+      retry_config.exceptions_to_retry.any? && !exception_exists_in?(retry_config.exceptions_to_retry, exception)
+    end
+
+    def reset_example_metadata(example)
+      example.metadata[:retry_attempts] = attempts
+      example.metadata[:retry_exceptions] ||= []
+
+      example.clear_exception
+    end
+
+    def run_callbacks(example)
+      return unless config.retry_callback
+
+      example.example_group_instance.instance_exec(example, &config.retry_callback)
+    end
+
+    def report_on_flakey_examples
+      retry_reporter_data.each_value { |ary| config.retry_reporter&.message(ary.join(',')) }
+
+      @retry_reporter_data = {}
+    end
+
+    def report_repeat_attempt(example)
+      config.formatters.each { |f| f.retry(example) if f.respond_to? :retry }
+      send_retry_message_to_reporter(example) if config.verbose_retry?
+    end
+
+    def send_retry_message_to_reporter(example)
+      config.reporter.message(RetryMessage.new(example).message_for_attempt(attempts))
+    end
+
+    def handle_indeterminate_failures(example)
+      retry_reporter_data[example.location] = retry_reporter_item(example)
+
+      return unless config.verbose_retry? && config.display_try_failure_messages?
+
+      config.reporter.message(RetryMessage.new(example).try_message(attempts))
+    end
+
+    def perform_after_retry_tasks(example)
+      example.example_group_instance.clear_lets if retry_config.clear_lets?
+
+      run_callbacks(example)
+
+      interval = retry_config.sleep_interval(attempts)
+      sleep interval if interval.to_f.positive?
     end
   end
 end
 
-RSpec::Retry.setup
+RSpec::RetryConfiguration.setup

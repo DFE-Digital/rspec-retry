@@ -2,6 +2,18 @@
 
 require 'spec_helper'
 
+class RetryError < StandardError; end
+
+class RetryChildError < RetryError; end
+
+class HardFailError < StandardError; end
+
+class HardFailChildError < HardFailError; end
+
+class OtherError < StandardError; end
+
+class SharedError < StandardError; end
+
 describe RSpec::Retry do
   def count
     @count ||= 0
@@ -21,17 +33,6 @@ describe RSpec::Retry do
     @expectations.shift
   end
 
-  class RetryError < StandardError; end
-
-  class RetryChildError < RetryError; end
-
-  class HardFailError < StandardError; end
-
-  class HardFailChildError < HardFailError; end
-
-  class OtherError < StandardError; end
-
-  class SharedError < StandardError; end
   before(:all) do
     ENV.delete('RSPEC_RETRY_RETRY_COUNT')
   end
