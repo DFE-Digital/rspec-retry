@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 module RSpec
+  ##
+  # RSpec::RetryMessage - Handles exception messaging for retried Rspec examples
+  #
   class RetryMessage
     attr_reader :example, :exception
 

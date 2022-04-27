@@ -4,18 +4,20 @@ require 'json'
 
 module RSpec
   ##
-  # An instance of an indeterminate spec.
+  # RSpec::FlakeySpec - An instance of an indeterminate spec.
   #
   class FlakeySpec
-    def initialize(attempts, retry_count, location, messages)
+    attr_reader :messages
+
+    def initialize(example, attempts, retry_count)
+      @example = example
       @attempts = attempts
       @retry_count = retry_count
-      @location = location
-      @messages = messages
+      @messages = RetryMessage.new(@example).exception_strings
     end
 
     def to_h
-      { attempts: @attempts, retry_count: @retry_count, location: @location, messages: @messages }
+      { attempts: @attempts, retry_count: @retry_count, location: @example.location, messages: messages }
     end
 
     def to_json(_)
