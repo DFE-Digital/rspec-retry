@@ -130,7 +130,7 @@ module RSpec
     end
 
     def handle_indeterminate_failures(example)
-      retry_reporter_data << FlakeySpec.new(example, attempts, retry_count)
+      retry_reporter_data << FlakeySpec.new(example, attempts, retry_count).as_json
     end
 
     def perform_after_retry_tasks(example)

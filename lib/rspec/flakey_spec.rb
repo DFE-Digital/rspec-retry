@@ -16,12 +16,8 @@ module RSpec
       @messages = RetryMessage.new(@example).exception_strings
     end
 
-    def to_h
+    def as_json
       { attempts: @attempts, retry_count: @retry_count, location: @example.location, messages: messages }
-    end
-
-    def to_json(_)
-      to_h.to_json
     end
   end
 end
