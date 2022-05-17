@@ -377,49 +377,79 @@ describe RSpec::Retry do
     end
   end
 
-  describe 'indeterminate tests' do
-    # rubocop:disable Style/ClassVars
-    let!(:group) do
-      RSpec.describe 'Indeterminate group', retry: 3 do
-        @@fail = true
-
+  describe 'output in verbose mode' do
+    line_1 = __LINE__ + 8
+    line_2 = __LINE__ + 11
+    let(:group) do
+      RSpec.describe 'ExampleGroup', retry: 2 do
         after do
-          @@fail = false
+          raise 'broken after hook'
         end
 
-        let(:error_message) do
-          <<-ERR
-            broken
-            indeterminate
-            spec
-          ERR
-        end
-
-        it 'fails or passes' do
-          raise error_message if @@fail
-
+        it 'passes' do
           true
+        end
+
+        it 'fails' do
+          raise 'broken spec'
         end
       end
     end
-    # rubocop:enable Style/ClassVars
 
-    it 'reports indeterminate tests correctly' do
-      retry_output = StringIO.new
-      reporter = RSpec::Core::Reporter.new(RSpec.configuration)
-      reporter.register_listener(RSpec::Core::Formatters::BaseTextFormatter.new(retry_output), 'message')
-      RSpec.configuration.retry_reporter = reporter
+    it 'outputs failures correctly' do
+      RSpec.configuration.output_stream = output = StringIO.new
+      RSpec.configuration.verbose_retry = true
+      RSpec.configuration.display_try_failure_messages = true
+      expect do
+        group.run RSpec.configuration.reporter
+      end.to change { output.string }.to a_string_including <<-STRING.gsub(/^\s+\| ?/, '')
+        | 1st Try error in ./spec/lib/rspec/retry_spec.rb:#{line_1}:
+        | broken after hook
+        |
+        | RSpec::Retry: 2nd try ./spec/lib/rspec/retry_spec.rb:#{line_1}
+        | F
+        | 1st Try error in ./spec/lib/rspec/retry_spec.rb:#{line_2}:
+        | broken spec
+        | broken after hook
+        |
+        | RSpec::Retry: 2nd try ./spec/lib/rspec/retry_spec.rb:#{line_2}
+      STRING
+    end
 
-      group.run RSpec.configuration.retry_reporter
+    describe 'indeterminate tests' do
+      line_number = __LINE__ + 18
 
-      parsed_json = JSON.parse(retry_output.string)
-      expect(parsed_json.size).to eq(1)
+      it 'reports indeterminate tests correctly' do
+        group = RSpec.describe 'Indeterminate group', retry: 3 do
+          @@fail = true
 
-      error_hash = parsed_json.first
-      expect(error_hash['attempts']).to eq(1)
-      expect(error_hash['retry_count']).to eq(3)
-      expect(error_hash['location']).to match(%r{^./spec/lib/rspec/retry_spec.rb:\d+$})
-      expect(error_hash['messages'].map { |m| m.gsub(/\s+/, ' ').strip }).to eq(['broken indeterminate spec'])
+          after do
+            @@fail = false
+          end
+
+          let(:error_message) do
+            <<-ERR
+              broken
+              indeterminate
+              spec
+            ERR
+          end
+
+          it 'fails or passes' do
+            raise error_message if @@fail
+
+            true
+          end
+        end
+
+        retry_output = StringIO.new
+        reporter = RSpec::Core::Reporter.new(RSpec.configuration)
+        reporter.register_listener(RSpec::Core::Formatters::BaseTextFormatter.new(retry_output), 'message')
+        RSpec.configuration.retry_reporter = reporter
+        expect do
+          group.run RSpec.configuration.retry_reporter
+        end.to change { retry_output.string }.to "1,3,./spec/lib/rspec/retry_spec.rb:#{line_number},broken indeterminate spec\n"
+      end
     end
   end
 end

@@ -3,14 +3,11 @@
 require 'rspec/core'
 require 'rspec/retry_configuration'
 require 'rspec/retry_message'
-require 'rspec/flakey_spec'
 require 'rspec/retry/version'
 require 'rspec_ext/rspec_ext'
 
 module RSpec
-  ##
   # RSpec::Retry - retry failed examples
-  #
   class Retry
     attr_reader :context, :procsy, :retry_reporter_data
 
@@ -18,7 +15,7 @@ module RSpec
       @procsy = procsy
       @procsy.metadata.merge!(opts)
       current_example.attempts ||= 0
-      @retry_reporter_data = []
+      @retry_reporter_data = {}
     end
 
     def current_example
@@ -64,7 +61,7 @@ module RSpec
         perform_after_retry_tasks(example)
       end
 
-      report_on_flakey_examples if retry_reporter_data.any? && attempts < retry_count
+      report_on_flakey_examples if config.retry_reporter && attempts < retry_count
     end
     # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity
 
@@ -83,6 +80,15 @@ module RSpec
       list.any? { |exception_klass| exception.is_a?(exception_klass) || exception_klass === exception }
     end
     # rubocop:enable Style/CaseEquality
+
+    def retry_reporter_item(example)
+      [
+        attempts,
+        retry_count,
+        example.location,
+        RetryMessage.new(example).inline_exception_strings.join(',')
+      ]
+    end
 
     def skip_example?(example)
       attempts_gte_retry_count? || exception_should_hard_fail?(example.exception) ||
@@ -115,9 +121,9 @@ module RSpec
     end
 
     def report_on_flakey_examples
-      config.retry_reporter&.message(retry_reporter_data.to_json)
+      retry_reporter_data.each_value { |ary| config.retry_reporter&.message(ary.join(',')) }
 
-      @retry_reporter_data = []
+      @retry_reporter_data = {}
     end
 
     def report_repeat_attempt(example)
@@ -130,7 +136,11 @@ module RSpec
     end
 
     def handle_indeterminate_failures(example)
-      retry_reporter_data << FlakeySpec.new(example, attempts, retry_count).as_json
+      retry_reporter_data[example.location] = retry_reporter_item(example)
+
+      return unless config.verbose_retry? && config.display_try_failure_messages?
+
+      config.reporter.message(RetryMessage.new(example).try_message(attempts))
     end
 
     def perform_after_retry_tasks(example)
