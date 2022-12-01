@@ -16,6 +16,8 @@ Gem::Specification.new do |gem|
   gem.name          = 'rspec-retry'
   gem.require_paths = ['lib']
   gem.version       = RSpec::Retry::VERSION
+  gem.required_ruby_version = '>= 2.7.5'
+
   gem.add_runtime_dependency(%(rspec-core), '>3.3')
   gem.add_development_dependency 'appraisal'
   gem.add_development_dependency 'byebug', '~>9.0.6' # 9.1 deprecates ruby 2.1
