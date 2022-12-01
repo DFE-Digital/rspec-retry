@@ -1,0 +1,153 @@
+AllCops:
+  NewCops: enable
+
+Bundler/OrderedGems:
+  Enabled: false
+
+Style/AndOr:
+  EnforcedStyle: conditionals
+
+Style/StringLiterals:
+  Enabled: true
+  EnforcedStyle: single_quotes
+
+# sometimes reduce is fine
+Style/EachWithObject:
+  Enabled: false
+
+# This cop has too many false positives (it also requires underscores for things that are not numbers)
+Style/NumericLiterals:
+  Enabled: false
+
+# Sometimes it's easier to think about a negated if, for example `render_error if !model.valid?` vs `render_error unless model.valid?`
+Style/NegatedIf:
+  Enabled: false
+
+# 🤷‍♂️
+Style/AsciiComments:
+  Enabled: false
+
+Style/ConditionalAssignment:
+  Enabled: true
+
+Style/TrailingCommaInHashLiteral:
+  EnforcedStyleForMultiline: comma
+
+Style/TrailingCommaInArrayLiteral:
+  EnforcedStyleForMultiline: comma
+
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+Style/TrailingCommaInArguments:
+  EnforcedStyleForMultiline: comma
+
+Style/BlockDelimiters:
+  Enabled: true
+  Exclude:
+    - spec/**/**
+
+Style/Documentation:
+  Enabled: false
+
+Style/FormatStringToken:
+  EnforcedStyle: template
+
+Style/RegexpLiteral:
+  Enabled: true
+  EnforcedStyle: mixed
+  AllowInnerSlashes: true
+
+Style/IfUnlessModifier:
+  Enabled: false
+
+Style/GuardClause:
+  Enabled: false
+
+Style/ClassAndModuleChildren:
+  Enabled: false
+
+Style/FormatString:
+  Enabled: true
+  EnforcedStyle: sprintf
+
+Style/GlobalStdStream:
+  Enabled: false
+
+Style/GlobalVars:
+  Enabled: false
+
+Style/HashAsLastArrayItem:
+  Enabled: false
+
+Style/HashSyntax:
+  EnforcedShorthandSyntax: either
+
+Style/CaseLikeIf:
+  Enabled: false
+
+Style/ExplicitBlockArgument:
+  Enabled: false
+
+Style/OptionalBooleanParameter:
+  AllowedMethods:
+    - perform
+Style/FetchEnvVar:
+  Enabled: false
+
+Metrics/BlockLength:
+  Enabled: false
+
+Metrics/MethodLength:
+  Enabled: false
+
+Metrics/AbcSize:
+  Enabled: false
+
+Metrics/ParameterLists:
+  Enabled: false
+
+Metrics/ModuleLength:
+  Enabled: false
+
+Metrics/CyclomaticComplexity:
+  Enabled: false
+
+Metrics/ClassLength:
+  Enabled: false
+
+Metrics/PerceivedComplexity:
+  Enabled: false
+
+Layout/LineLength:
+  Enabled: false
+
+# Disable these cops because they do not allow reasonable code like splitting
+# `attr_reader :bla, :foo` over 2 lines.
+Layout/MultilineArrayLineBreaks:
+  Enabled: false
+
+Layout/FirstHashElementIndentation:
+  EnforcedStyle: consistent
+
+Layout/MultilineMethodCallIndentation:
+  Enabled: false
+
+Layout/AccessModifierIndentation:
+  EnforcedStyle: outdent
+
+Layout/FirstArrayElementIndentation:
+  EnforcedStyle: consistent
+
+Layout/EmptyLinesAroundAttributeAccessor:
+  Enabled: false
+
+Layout/SpaceAroundMethodCallOperator:
+  Enabled: true
+
+Layout/EmptyLineBetweenDefs:
+  AllowAdjacentOneLineDefs: true
+  Enabled: true
+
+Layout/SpaceBeforeBrackets:
+  Enabled: true
