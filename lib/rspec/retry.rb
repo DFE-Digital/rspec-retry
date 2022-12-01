@@ -46,7 +46,6 @@ module RSpec
       RetryConfiguration.new(procsy)
     end
 
-    # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
     def run
       example = current_example
 
@@ -66,9 +65,9 @@ module RSpec
 
       report_on_flakey_examples if retry_reporter_data.any? && attempts < retry_count
     end
-    # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity
+  # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity
 
-    private
+  private
 
     def reset_and_run_example(example)
       reset_example_metadata(example)

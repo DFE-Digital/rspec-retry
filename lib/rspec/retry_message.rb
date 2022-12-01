@@ -27,7 +27,7 @@ module RSpec
     def try_message(attempts)
       [
         "\n#{ordinalize(attempts)} Try error in #{example.location}:",
-        "#{exception_strings.join("\n")}\n"
+        "#{exception_strings.join("\n")}\n",
       ].join("\n")
     end
 

@@ -14,6 +14,13 @@ class OtherError < StandardError; end
 
 class SharedError < StandardError; end
 
+class CaseEqualityError < StandardError
+  def self.===(other)
+    # An example of dynamic matching
+    other.message == 'Rescue me!'
+  end
+end
+
 class RetryExampleGroup
   class << self
     attr_accessor :count, :fail, :results
@@ -31,9 +38,11 @@ describe RSpec::Retry do
     @count += 1
   end
 
+  # rubocop:disable Naming/AccessorMethodName
   def set_expectations(expectations)
     @expectations = expectations
   end
+  # rubocop:enable Naming/AccessorMethodName
 
   def shift_expectation
     @expectations.shift
@@ -219,13 +228,6 @@ describe RSpec::Retry do
       end
 
       context 'the example retries exceptions which match with case equality' do
-        class CaseEqualityError < StandardError
-          def self.===(other)
-            # An example of dynamic matching
-            other.message == 'Rescue me!'
-          end
-        end
-
         it 'retries the maximum number of times', exceptions_to_retry: [CaseEqualityError] do
           raise StandardError, 'Rescue me!' unless count > 1
 
@@ -382,13 +384,12 @@ describe RSpec::Retry do
         {
           'without retry option' => [true, 1],
           'with retry option' => [false, 3],
-        }
+        },
       )
     end
   end
 
   describe 'indeterminate tests' do
-    # rubocop:disable Style/ClassVars
     let!(:group) do
       RSpec.describe 'Indeterminate group', retry: 3 do
         RetryExampleGroup.fail = true
@@ -412,8 +413,6 @@ describe RSpec::Retry do
         end
       end
     end
-    # rubocop:enable Style/ClassVars
-
     it 'reports indeterminate tests correctly' do
       retry_output = StringIO.new
       reporter = RSpec::Core::Reporter.new(RSpec.configuration)
@@ -428,7 +427,7 @@ describe RSpec::Retry do
       error_hash = parsed_json.first
       expect(error_hash['attempts']).to eq(1)
       expect(error_hash['retry_count']).to eq(3)
-      expect(error_hash['location']).to match(%r{^./spec/lib/rspec/retry_spec.rb:\d+$})
+      expect(error_hash['location']).to match(/^.\/spec\/lib\/rspec\/retry_spec.rb:\d+$/)
       expect(error_hash['messages'].map { |m| m.gsub(/\s+/, ' ').strip }).to eq(['broken indeterminate spec'])
     end
   end

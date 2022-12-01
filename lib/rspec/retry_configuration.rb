@@ -17,7 +17,7 @@ module RSpec
         config.add_setting :source_code_repo_url
 
         # retry based on example metadata
-        config.add_setting :retry_count_condition, default: ->(_) { nil }
+        config.add_setting :retry_count_condition, default: ->(_) {}
 
         # If a list of exceptions is provided and 'retry' > 1, we only retry if
         # the exception that was raised by the example is NOT in that list. Otherwise
@@ -55,16 +55,16 @@ module RSpec
     end
 
     def clear_lets?
-      if !procsy.metadata[:clear_lets_on_failure].nil?
-        procsy.metadata[:clear_lets_on_failure]
-      else
+      if procsy.metadata[:clear_lets_on_failure].nil?
         RSpec.configuration.clear_lets_on_failure
+      else
+        procsy.metadata[:clear_lets_on_failure]
       end
     end
 
     def sleep_interval(attempts)
       if procsy.metadata[:exponential_backoff]
-        2**(attempts - 1) * procsy.metadata[:retry_wait]
+        (2**(attempts - 1)) * procsy.metadata[:retry_wait]
       else
         procsy.metadata[:retry_wait] || RSpec.configuration.default_sleep_interval
       end
