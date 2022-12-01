@@ -7,7 +7,7 @@ module RSpec
   # RSpec::FlakeySpec - An instance of an indeterminate spec.
   #
   class FlakeySpec
-    attr_reader :messages
+    attr_reader :messages, :attempts, :retry_count
 
     def initialize(example, attempts, retry_count)
       @example = example
@@ -17,7 +17,11 @@ module RSpec
     end
 
     def as_json
-      { attempts: @attempts, retry_count: @retry_count, location: @example.location, messages: messages }
+      { attempts:, retry_count:, location:, messages: }
+    end
+
+    def location
+      @example.location
     end
   end
 end
