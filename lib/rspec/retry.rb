@@ -65,7 +65,6 @@ module RSpec
 
       report_on_flakey_examples if retry_reporter_data.any? && attempts < retry_count
     end
-  # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity
 
   private
 
