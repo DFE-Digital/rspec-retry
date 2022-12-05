@@ -14,6 +14,19 @@ class OtherError < StandardError; end
 
 class SharedError < StandardError; end
 
+class CaseEqualityError < StandardError
+  def self.===(other)
+    # An example of dynamic matching
+    other.message == 'Rescue me!'
+  end
+end
+
+class RetryExampleGroup
+  class << self
+    attr_accessor :count, :fail, :results
+  end
+end
+
 describe RSpec::Retry do
   def count
     @count ||= 0
@@ -25,7 +38,7 @@ describe RSpec::Retry do
     @count += 1
   end
 
-  def set_expectations(expectations)
+  def set_expectations(expectations) # rubocop:disable Naming/AccessorMethodName
     @expectations = expectations
   end
 
@@ -74,13 +87,15 @@ describe RSpec::Retry do
     end
 
     context 'with :retry => 0' do
-      after(:all) { @@this_ran_once = nil }
+      before(:all) { RetryExampleGroup.count = 0 }
+      after(:all) { RetryExampleGroup.count = 0 }
+
       it 'should still run once', retry: 0 do
-        @@this_ran_once = true
+        RetryExampleGroup.count += 1
       end
 
       it 'should run have run once' do
-        expect(@@this_ran_once).to be true
+        expect(RetryExampleGroup.count).to be 1
       end
     end
 
@@ -211,13 +226,6 @@ describe RSpec::Retry do
       end
 
       context 'the example retries exceptions which match with case equality' do
-        class CaseEqualityError < StandardError
-          def self.===(other)
-            # An example of dynamic matching
-            other.message == 'Rescue me!'
-          end
-        end
-
         it 'retries the maximum number of times', exceptions_to_retry: [CaseEqualityError] do
           raise StandardError, 'Rescue me!' unless count > 1
 
@@ -350,12 +358,12 @@ describe RSpec::Retry do
     let!(:example_group) do
       RSpec.describe do
         before :all do
-          @@results = {}
+          RetryExampleGroup.results = {}
         end
 
         around do |example|
           example.run_with_retry
-          @@results[example.description] = [example.exception.nil?, example.attempts]
+          RetryExampleGroup.results[example.description] = [example.exception.nil?, example.attempts]
         end
 
         specify 'without retry option' do
@@ -370,21 +378,22 @@ describe RSpec::Retry do
 
     it 'should be exposed' do
       example_group.run
-      expect(example_group.class_variable_get(:@@results)).to eq({
-                                                                   'without retry option' => [true, 1],
-                                                                   'with retry option' => [false, 3]
-                                                                 })
+      expect(RetryExampleGroup.results).to eq(
+        {
+          'without retry option' => [true, 1],
+          'with retry option' => [false, 3],
+        },
+      )
     end
   end
 
   describe 'indeterminate tests' do
-    # rubocop:disable Style/ClassVars
     let!(:group) do
       RSpec.describe 'Indeterminate group', retry: 3 do
-        @@fail = true
+        RetryExampleGroup.fail = true
 
         after do
-          @@fail = false
+          RetryExampleGroup.fail = false
         end
 
         let(:error_message) do
@@ -396,14 +405,12 @@ describe RSpec::Retry do
         end
 
         it 'fails or passes' do
-          raise error_message if @@fail
+          raise error_message if RetryExampleGroup.fail
 
           true
         end
       end
     end
-    # rubocop:enable Style/ClassVars
-
     it 'reports indeterminate tests correctly' do
       retry_output = StringIO.new
       reporter = RSpec::Core::Reporter.new(RSpec.configuration)
@@ -418,7 +425,7 @@ describe RSpec::Retry do
       error_hash = parsed_json.first
       expect(error_hash['attempts']).to eq(1)
       expect(error_hash['retry_count']).to eq(3)
-      expect(error_hash['location']).to match(%r{^./spec/lib/rspec/retry_spec.rb:\d+$})
+      expect(error_hash['location']).to match(/^.\/spec\/lib\/rspec\/retry_spec.rb:\d+$/)
       expect(error_hash['messages'].map { |m| m.gsub(/\s+/, ' ').strip }).to eq(['broken indeterminate spec'])
     end
   end

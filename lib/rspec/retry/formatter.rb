@@ -43,7 +43,7 @@ module RSpec
         increment_tries example
       end
 
-      private
+    private
 
       def increment_success(example)
         # debugger

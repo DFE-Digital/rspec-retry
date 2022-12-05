@@ -1,3 +1,7 @@
+# 0.7.0 - 2022-12-05
+
+Make sure the library works in Ruby 3 and its codebase.
+
 # 0.6.2 - 2019-11-21
 ## enhancements
 expose `example.attempts` (in addition to `example.metadata[:attempts]`) (thanks @knu / #103)
@@ -15,7 +19,7 @@ store retry attempts in example metadata (thanks @aeberlin / #43)
 
 # 0.6.0 - 2018-05-15
 ## enhancements
-add exponential backoff option (thanks @patveith, @thedrow / #91, #94, #95)  
+add exponential backoff option (thanks @patveith, @thedrow / #91, #94, #95)
 better documentation (thanks @swrobel / #90)
 
 # 0.5.7 - 2018-03-13
@@ -36,7 +40,7 @@ added support for rspec 3.6.0 (thanks @dthorsen / #76)
 
 # 0.5.3 - 2017-01-11
 ## enhancements
-printing summary of rspec to output not STDOUT (thanks @trevorcreech / #68)  
+printing summary of rspec to output not STDOUT (thanks @trevorcreech / #68)
 removing some development dependencies
 
 # 0.5.2 - 2016-10-03
@@ -55,7 +59,7 @@ drop support for rspec 3.2, added support for 3.4, 3.5
 failure message was off by 1 (thanks @anthonywoo, @vgrigoruk / #57)
 
 ## enhancements
-add the `exceptions_to_hard_fail` options (thanks @james-dominy, @ShockwaveNN / #59)  
+add the `exceptions_to_hard_fail` options (thanks @james-dominy, @ShockwaveNN / #59)
 add retry reporter & api for accessing retry from reporter (thanks @tdeo / #54)
 
 # 0.4.5 - 2015-11-4

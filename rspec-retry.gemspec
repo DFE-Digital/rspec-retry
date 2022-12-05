@@ -12,14 +12,16 @@ Gem::Specification.new do |gem|
   gem.license       = 'MIT'
 
   gem.files         = `git ls-files`.split($OUTPUT_RECORD_SEPARATOR)
-  gem.executables   = gem.files.grep(%r{^bin/}).map { |f| File.basename(f) }
-  gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
+  gem.executables   = gem.files.grep(/^bin\//).map { |f| File.basename(f) }
   gem.name          = 'rspec-retry'
   gem.require_paths = ['lib']
   gem.version       = RSpec::Retry::VERSION
+  gem.required_ruby_version = '>= 2.7.5'
+
   gem.add_runtime_dependency(%(rspec-core), '>3.3')
   gem.add_development_dependency 'appraisal'
   gem.add_development_dependency 'byebug', '~>9.0.6' # 9.1 deprecates ruby 2.1
   gem.add_development_dependency 'pry-byebug'
   gem.add_development_dependency 'rspec'
+  gem.metadata['rubygems_mfa_required'] = 'true'
 end
