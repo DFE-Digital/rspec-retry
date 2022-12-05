@@ -38,11 +38,9 @@ describe RSpec::Retry do
     @count += 1
   end
 
-  # rubocop:disable Naming/AccessorMethodName
-  def set_expectations(expectations)
+  def set_expectations(expectations) # rubocop:disable Naming/AccessorMethodName
     @expectations = expectations
   end
-  # rubocop:enable Naming/AccessorMethodName
 
   def shift_expectation
     @expectations.shift
